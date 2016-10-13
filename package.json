@@ -1,0 +1,22 @@
+{
+  "name": "schema-db",
+  "version": "1.0.1",
+  "description": "Schematic-knex framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "knex",
+    "postgresql",
+    "sql",
+    "schema"
+  ],
+  "author": "Taras Labiak <kissarat@gmail.com>",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "knex": "^0.12.5",
+    "pg": "^6.1.0",
+    "sqlite": "^2.2.0"
+  }
+}
