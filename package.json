@@ -1,6 +1,6 @@
 {
   "name": "schema-db",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Schematic-knex framework",
   "main": "index.js",
   "scripts": {
@@ -16,6 +16,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "knex": "^0.12.5",
+    "lodash": "^4.16.4",
     "pg": "^6.1.0",
     "sqlite": "^2.2.0"
   },

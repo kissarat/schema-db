@@ -91,7 +91,10 @@ exports.loadSchema = function () {
           })
       })
     })
-    .then(() => exports.table('meta.reference'))
+    .then(function () {
+      return exports.table('meta.reference')
+        .select()
+    })
     .then(function (references) {
       references.forEach(function (ref) {
         const exists = 'object' === typeof schema[ref.from]
