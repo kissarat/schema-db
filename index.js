@@ -9,6 +9,39 @@ if (!config) {
 
 module.exports = exports = require('knex')(config)
 
+exports.Entity = class Entity {
+  constructor(options) {
+    Object.assign(this, options)
+  }
+
+  create(data) {
+    return exports
+      .table(this.name)
+      .insert(data, 'id')
+  }
+
+  read(params) {
+    return exports
+      .table(this.name)
+      .where(params)
+      .select()
+  }
+
+  update(params, changes) {
+    return exports
+      .table(this.name)
+      .where(params)
+      .update(changes)
+  }
+
+  delete(params) {
+    return exports
+      .table(this.name)
+      .where(params)
+      .del()
+  }
+}
+
 exports.loadSchema = function () {
   const schema = {}
 
@@ -88,9 +121,14 @@ exports.loadSchema = function () {
           }
         }
       })
-      exports.schema = schema
+      exports.entities = schema
+      exports.time = Date.now()
       if (true === config.report) {
         console.log('Schema loaded', config)
       }
     })
+}
+
+exports.lord = function lord() {
+  require('./lord').apply(exports, arguments)
 }
