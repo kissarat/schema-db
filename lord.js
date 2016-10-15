@@ -1,4 +1,23 @@
 const {pick} = require('lodash')
+const {resolve} = require('path')
+
+function responseError(res) {
+  return function (err) {
+    if (err instanceof Error) {
+      err = pick(err, 'name', 'message', 'stack')
+      const root = resolve(__dirname + '/..')
+      err.stack = err.stack
+        .replace(/\s+at\s+/g, '{#}at ')
+        .split('{#}')
+        .map(function (p) {
+          return p.replace(root, '')
+        })
+    }
+    res.end(JSON.stringify({
+      error: err
+    }))
+  }
+}
 
 function lord(req, res, next) {
   function json(code, data) {
@@ -17,21 +36,7 @@ function lord(req, res, next) {
         })
         res.end(JSON.stringify(result))
       })
-      .catch(function (err) {
-        if (err instanceof Error) {
-          err = pick(err, 'name', 'message', 'stack')
-          const root = resolve(__dirname + '/..')
-          err.stack = err.stack
-            .replace(/\s+at\s+/g, '{#}at ')
-            .split('{#}')
-            .map(function (p) {
-              return p.replace(root, '')
-            })
-        }
-        res.end(JSON.stringify({
-          error: err
-        }))
-      })
+      .catch(responseError(res))
   }
 
   const path = /\/lord\/([\w_]+)/.exec(req.url)
@@ -76,3 +81,5 @@ function lord(req, res, next) {
 }
 
 module.exports = lord
+
+lord.responseError = responseError

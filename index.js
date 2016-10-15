@@ -152,6 +152,10 @@ exports.loadSchema = function () {
     })
 }
 
+const lordModule = require('./lord')
+
 exports.lord = function lord() {
-  require('./lord').apply(exports, arguments)
+  lordModule.apply(exports, arguments)
 }
+
+exports.responseError = lordModule.responseError
