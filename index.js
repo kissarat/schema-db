@@ -39,7 +39,7 @@ class Entity {
     const fields = this.fields
     each(fields, function ({type}, name) {
       const value = params[name]
-      if ('integer' === type || 'float' === type) {
+      if (isFinite(value) && ('integer' === type || 'float' === type)) {
         params[name] = +value
       }
     })
