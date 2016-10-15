@@ -1,12 +1,12 @@
-const {each, isObject} = require('lodash')
+const {each, isObject, omit} = require('lodash')
 
 const config = 'string' === typeof process.env.KNEX
   ? JSON.parse(process.env.KNEX)
   : process.env.KNEX
 
 if (!config) {
-    console.error('Set KNEX json env variable')
-    process.exit(1)
+  console.error('Set KNEX json env variable')
+  process.exit(1)
 }
 
 module.exports = exports = require('knex')(config)
@@ -36,10 +36,39 @@ class Entity {
   }
 
   read(params = {}) {
-    return exports
+    const fields = this.fields
+    each(fields, function ({type}, name) {
+      const value = params[name]
+      if ('integer' === type || 'float' === type) {
+        params[name] = +value
+      }
+    })
+    const q = exports
       .table(this.name)
-      .where(params)
-      .select()
+      .where(omit(params, 'search', 'select', 'order', 'limit'));
+    if (params.search && 'function' === typeof params.search.trim && params.search.trim()) {
+      q.where(function () {
+        each(fields, ({type}, name) => {
+          if ('string' === type) {
+            this.orWhere(name, 'ilike', `%${params.search}%`)
+          }
+        })
+      })
+    }
+    if (isFinite(params.limit)) {
+      q.limit(+params.limit)
+    }
+    if (params.select) {
+      if ('string' === typeof params.select) {
+        params.select = params.select.split(/[ .,]+/g).filter(s => s.trim())
+      }
+      q.select(params.select)
+    }
+    else {
+      q.select()
+    }
+    console.log(q.toString())
+    return q
   }
 
   update(params, changes) {
@@ -97,7 +126,7 @@ exports.loadSchema = function () {
               if (['smallint', 'int', 'bigint'].indexOf(column.data_type)) {
                 field.type = 'integer'
               }
-              if (0 === column.data_type.indexOf('character') && 'text' === column.data_type) {
+              if (0 === column.data_type.indexOf('character') || 'text' === column.data_type) {
                 field.type = 'string'
               }
               if ('json' === column.data_type) {

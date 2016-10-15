@@ -1,5 +1,6 @@
-const {pick} = require('lodash')
+const {pick, isObject} = require('lodash')
 const {resolve} = require('path')
+const {parse} = require('querystring')
 
 function responseError(res) {
   return function (err) {
@@ -39,7 +40,7 @@ function lord(req, res, next) {
       .catch(responseError(res))
   }
 
-  const path = /\/lord\/([\w_]+)/.exec(req.url)
+  const path = /^\/lord\/([\w_]+)/.exec(req.url)
   if ('/lord-names' === req.url) {
     res.end(JSON.stringify(Object.keys(this.entities)))
   }
@@ -48,10 +49,11 @@ function lord(req, res, next) {
   }
   else if (path) {
     const entity = this.entities[path[1]]
+    const params = isObject(req.params) ? req.params : parse(req.url.split('?').slice(1).join('?') || '')
     if (entity) {
       switch (req.method) {
         case 'GET':
-          table.call(this, entity.name)
+          entity.read(params).then(json)
           break;
         default:
           json(405, {error: {message: 'Method not found'}})
