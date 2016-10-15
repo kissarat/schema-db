@@ -1,3 +1,5 @@
+const {each, isObject} = require('lodash')
+
 const config = 'string' === typeof process.env.KNEX
   ? JSON.parse(process.env.KNEX)
   : process.env.KNEX
@@ -9,18 +11,31 @@ if (!config) {
 
 module.exports = exports = require('knex')(config)
 
-exports.Entity = class Entity {
+class Entity {
   constructor(options) {
-    Object.assign(this, options)
+    if (isObject(options)) {
+      Object.assign(this, options)
+    }
+    // if (this.report) {
+    //   const self = this
+    //   ['create', 'read', 'update', 'delete'].forEach(function (name) {
+    //     const original = self[name]
+    //     self[name] = function () {
+    //       const q = original.apply(self, arguments)
+    //       console.log(q.toSQL())
+    //       return q
+    //     }
+    //   })
+    // }
   }
 
-  create(data) {
+  create(data = {}) {
     return exports
       .table(this.name)
       .insert(data, 'id')
   }
 
-  read(params) {
+  read(params = {}) {
     return exports
       .table(this.name)
       .where(params)
@@ -41,6 +56,8 @@ exports.Entity = class Entity {
       .del()
   }
 }
+
+exports.Entity = Entity
 
 exports.loadSchema = function () {
   const schema = {}
@@ -123,6 +140,9 @@ exports.loadSchema = function () {
             field: ref.from_field
           }
         }
+      })
+      each(schema, function (entity, name) {
+        schema[name] = new Entity(entity)
       })
       exports.entities = schema
       exports.time = Date.now()
