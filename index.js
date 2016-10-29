@@ -29,10 +29,28 @@ class Entity {
     // }
   }
 
-  create(data = {}) {
+  create(params = {}, data) {
+    const q = exports.table(this.name)
+    if (data) {
+      return this._returning(params, exports.table(this.name))
+        .insert(omit(data, 'returning'))
+    }
+    else {
+      return q.insert(params)
+    }
+  }
+
+  find(params = {}) {
     return exports
       .table(this.name)
-      .insert(data, 'id')
+      .where(params)
+      .select()
+  }
+
+  findOne(params = {}) {
+    return this
+      .find(params)
+      .then(row => row[0])
   }
 
   read(params = {}) {
@@ -59,9 +77,7 @@ class Entity {
       q.limit(+params.limit)
     }
     if (params.select) {
-      if ('string' === typeof params.select) {
-        params.select = params.select.split(/[ .,]+/g).filter(s => s.trim())
-      }
+      params.select = this._split(params, 'select')
       q.select(params.select)
     }
     else {
@@ -72,18 +88,51 @@ class Entity {
   }
 
   update(params, changes) {
-    return exports
-      .table(this.name)
-      .where(params)
+    const q = this._returning(params,
+      exports
+        .table(this.name)
+        .where(omit(params, 'returning'))
+    )
       .update(changes)
+    console.log(q.toString())
+    return q
   }
 
   delete(params) {
-    return exports
-      .table(this.name)
-      .where(params)
+    return this._returning(params,
+      exports
+        .table(this.name)
+        .where(omit(params, 'returning'))
+    )
       .del()
   }
+
+  _split(params, name) {
+    return 'string' === typeof params[name] ? params[name].split(/[ .,]+/g).filter(s => s.trim()) : params[name]
+  }
+
+  _returning(params, q) {
+    if (params.returning) {
+      params.returning = this._split(params, 'returning')
+      q.returning(params.returning)
+    }
+    return q
+  }
+}
+
+const start = Date.now() / 1000 - process.hrtime()[0]
+
+exports.timeId = function timeId() {
+  let now = process.hrtime()
+  now[1] -= Math.round(Math.random() * 50 * 1000 * 1000)
+  return ((start + now[0]) * 1000 * 1000 * 1000 + now[1]).toString()
+}
+
+exports.log = function log(entity, action, data, user, ip) {
+  return exports.table('log').insert({
+    id: exports.timeId(),
+    entity, action, data, user, ip
+  })
 }
 
 exports.Entity = Entity
@@ -188,3 +237,18 @@ exports.lord = function lord() {
 }
 
 exports.responseError = lordModule.responseError
+
+if (!module.parent) {
+  const http = require('http')
+  const server = http.createServer(function (req, res) {
+    exports.lord(req, res, function () {
+      res.writeHead(400, {
+        'content-type': 'application/json; charset=utf-8'
+      })
+      res.end(JSON.stringify({error: {message: 'Bad Request'}}))
+    })
+  })
+  exports.loadSchema().then(function () {
+    server.listen(54321, '0.0.0.0')
+  })
+}

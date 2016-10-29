@@ -2,6 +2,10 @@ const {pick, isObject} = require('lodash')
 const {resolve} = require('path')
 const {parse} = require('querystring')
 
+const contentTypeJson = {
+  'content-type': 'application/json; charset=utf-8'
+}
+
 function responseError(res) {
   return function (err) {
     if (err instanceof Error) {
@@ -14,6 +18,7 @@ function responseError(res) {
           return p.replace(root, '')
         })
     }
+    res.writeHead(500, contentTypeJson)
     res.end(JSON.stringify({
       error: err
     }))
@@ -22,9 +27,7 @@ function responseError(res) {
 
 function lord(req, res, next) {
   function json(code, data) {
-    res.writeHeader(data ? code : 200, {
-      'content-type': 'application/json'
-    })
+    res.writeHeader(data ? code : 200, contentTypeJson)
     res.end(JSON.stringify(data ? data : code))
   }
 
@@ -35,14 +38,14 @@ function lord(req, res, next) {
         rows.forEach(function (row) {
           result[row.id || row.name] = row
         })
-        res.end(JSON.stringify(result))
+        json(result)
       })
       .catch(responseError(res))
   }
 
   const path = /^\/lord\/([\w_]+)/.exec(req.url)
   if ('/lord-names' === req.url) {
-    res.end(JSON.stringify(Object.keys(this.entities)))
+    json(Object.keys(this.entities))
   }
   if ('/lord/meta.reference' === req.url) {
     table.call(this, 'meta.reference')
@@ -51,13 +54,32 @@ function lord(req, res, next) {
     const entity = this.entities[path[1]]
     const params = isObject(req.params) ? req.params : parse(req.url.split('?').slice(1).join('?') || '')
     if (entity) {
+      let promise
       switch (req.method) {
         case 'GET':
-          entity.read(params).then(json)
-          break;
+          promise = entity.read(params)
+          break
+        case 'DELETE':
+          promise = entity.delete(params)
+          break
         default:
           json(405, {error: {message: 'Method not found'}})
-          break;
+          break
+      }
+      if (promise && 'function' === typeof promise.then) {
+        promise
+          .then(function (rows) {
+            if (rows.length >= 0) {
+              res.setHeader('Size', rows.length)
+            }
+            if (params.returning && 0 === rows.length) {
+              res.writeHead(404)
+            }
+            else {
+              json(rows)
+            }
+          })
+          .catch(responseError(res))
       }
     }
     else {
