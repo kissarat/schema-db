@@ -1,29 +1,8 @@
-const {pick, isObject} = require('lodash')
-const {resolve} = require('path')
+const {isObject} = require('lodash')
 const {parse} = require('querystring')
+const salo = require('salo')
 
-const contentTypeJson = {
-  'content-type': 'application/json; charset=utf-8'
-}
-
-function responseError(res) {
-  return function (err) {
-    if (err instanceof Error) {
-      err = pick(err, 'name', 'message', 'stack')
-      const root = resolve(__dirname + '/..')
-      err.stack = err.stack
-        .replace(/\s+at\s+/g, '{#}at ')
-        .split('{#}')
-        .map(function (p) {
-          return p.replace(root, '')
-        })
-    }
-    res.writeHead(500, contentTypeJson)
-    res.end(JSON.stringify({
-      error: err
-    }))
-  }
-}
+const contentTypeJson = {'content-type': 'application/json; charset=utf-8'}
 
 function lord(req, res, next) {
   function json(code, data) {
@@ -40,7 +19,7 @@ function lord(req, res, next) {
         })
         json(result)
       })
-      .catch(responseError(res))
+      .catch(salo.http(res))
   }
 
   const path = /^\/lord\/([\w_]+)/.exec(req.url)
@@ -52,7 +31,9 @@ function lord(req, res, next) {
   }
   else if (path) {
     const entity = this.entities[path[1]]
-    const params = isObject(req.params) ? req.params : parse(req.url.split('?').slice(1).join('?') || '')
+    const params = isObject(req.query)
+      ? req.query
+      : parse(req.url.split('?').slice(1).join('?') || '')
     if (entity) {
       let promise
       switch (req.method) {
@@ -79,7 +60,7 @@ function lord(req, res, next) {
               json(rows)
             }
           })
-          .catch(responseError(res))
+          .catch(salo.http(res))
       }
     }
     else {
@@ -105,5 +86,3 @@ function lord(req, res, next) {
 }
 
 module.exports = lord
-
-lord.responseError = responseError
