@@ -1,5 +1,5 @@
 const {each, isObject, omit} = require('lodash')
-const {split, returning} = require('./utils')
+const {split, returning, wrapResult} = require('./utils')
 
 class Entity {
   constructor(options) {
@@ -18,20 +18,21 @@ class Entity {
     //   })
     // }
   }
-  
+
   table() {
     return Entity.table(this.name)
   }
 
   create(params = {}, data) {
-    const q = this.table()
+    let q = this.table()
     if (data) {
-      return returning(params, this.table())
+      q = returning(params, this.table())
         .insert(omit(data, 'returning'))
     }
     else {
-      return q.insert(params)
+      q = q.insert(params)
     }
+    return wrapResult(q)
   }
 
   find(params = {}) {
@@ -71,10 +72,10 @@ class Entity {
     if (params.order) {
       split(params.order).forEach(function (c) {
         if ('-' === c[0]) {
-          q.where(c.split(1), 'desc')
+          q.orderBy(c.slice(1), 'desc')
         }
         else {
-          q.where(c, 'desc')
+          q.orderBy(c, 'desc')
         }
       })
     }
@@ -82,13 +83,12 @@ class Entity {
       q.limit(+params.limit)
     }
     if (params.select) {
-      params.select = split(params, 'select')
-      q.select(params.select)
+      params.select = split(params.select)
+      q.column(params.select)
     }
     else {
       q.select()
     }
-    console.log(q.toString())
     return q
   }
 
@@ -99,17 +99,17 @@ class Entity {
         .where(omit(params, 'returning'))
     )
       .update(changes)
-    console.log(q.toString())
-    return q
+    return wrapResult(q)
   }
 
   delete(params) {
-    return returning(params,
+    const q = returning(params,
       this
         .table()
         .where(omit(params, 'returning'))
     )
       .del()
+    return wrapResult(q)
   }
 }
 

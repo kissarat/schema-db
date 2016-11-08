@@ -34,7 +34,7 @@ module.exports = function loadSchema() {
                 field.precision = column.numeric_precision
               }
               if (column.character_maximum_length) {
-                field.maxlength = column.character_maximum_length
+                field.maxLength = column.character_maximum_length
               }
               if (['smallint', 'int', 'bigint'].indexOf(column.data_type)) {
                 field.type = 'integer'
