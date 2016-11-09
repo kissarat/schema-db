@@ -23,15 +23,9 @@ class Entity {
     return Entity.table(this.name)
   }
 
-  create(params = {}, data) {
-    let q = this.table()
-    if (data) {
-      q = returning(params, this.table())
-        .insert(omit(data, 'returning'))
-    }
-    else {
-      q = q.insert(params)
-    }
+  create(params) {
+    const q = returning(params, this.table())
+      .insert(omit(params, 'returning'))
     return wrapResult(q)
   }
 

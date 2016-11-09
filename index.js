@@ -22,7 +22,8 @@ const db = {
   setup,
   Entity,
   log,
-  timeId
+  timeId,
+  UNIQUE_VIOLATION: '23505'
 }
 
 db.lord = function(req, res, next) {
