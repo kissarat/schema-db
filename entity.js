@@ -69,7 +69,7 @@ class Entity {
           q.orderBy(c.slice(1), 'desc')
         }
         else {
-          q.orderBy(c, 'desc')
+          q.orderBy(c, 'asc')
         }
       })
     }
