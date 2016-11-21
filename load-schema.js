@@ -36,14 +36,23 @@ module.exports = function loadSchema() {
               if (column.character_maximum_length) {
                 field.maxLength = column.character_maximum_length
               }
-              if (['smallint', 'int', 'bigint'].indexOf(column.data_type)) {
+              if (['smallint', 'int', 'bigint'].indexOf(column.data_type) >= 0) {
                 field.type = 'integer'
               }
-              if (0 === column.data_type.indexOf('character') || 'text' === column.data_type) {
+              else if (0 === column.data_type.indexOf('character') || 'text' === column.data_type) {
                 field.type = 'string'
               }
-              if ('json' === column.data_type) {
+              else if (['real', 'numeric', 'double precision'].indexOf(column.data_type) >= 0) {
+                field.type = 'float'
+              }
+              else if ('json' === column.data_type) {
                 field.type = 'object'
+              }
+              else if (column.data_type.indexOf('timestamp') >= 0) {
+                field.type = 'time'
+              }
+              else {
+                field.type = column.data_type
               }
               table.fields[field.name] = field
             })
@@ -64,12 +73,27 @@ module.exports = function loadSchema() {
       rows.forEach(({name, attributes}) => {
         if (schema[name]) {
           const fields = schema[name].fields
-          each(attributes, (type, key) => {
-            if (this.enums[type]) {
-              fields[key].type = type
-              fields[key].items = this.enums[type]
-            }
-          })
+          if (fields) {
+            each(attributes, (type, key) => {
+              const field = fields[key]
+              if (field) {
+                if (this.enums[type]) {
+                  field.type = 'enum'
+                  field.items = this.enums[type]
+                }
+                else if ('boolean' === type) {
+                  field.type = type
+                }
+                field.sql_type = type
+              }
+              else {
+                console.error(`Field ${name}.${key} not found`)
+              }
+            })
+          }
+          else {
+            console.error(`Schema fields not found ${name}`, schema[name])
+          }
         }
         else {
           console.error(`schema[name] ${name} not defined`)
