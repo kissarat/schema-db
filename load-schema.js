@@ -49,10 +49,33 @@ module.exports = function loadSchema() {
             })
           })
       })
+
+      return this.raw(`SELECT typname, json_agg(enumlabel) as values FROM pg_enum e
+      JOIN pg_type t ON e.enumtypid = t.oid GROUP BY  typname`)
     })
-    .then(() => {
+    .then(({rows}) => {
+      this.enums = {}
+      rows.forEach((row) => {
+        this.enums[row.typname] = row.values
+      })
+      return this.table('meta.attribute')
+    })
+    .then((rows) => {
+      rows.forEach(({name, attributes}) => {
+        if (schema[name]) {
+          const fields = schema[name].fields
+          each(attributes, (type, key) => {
+            if (this.enums[type]) {
+              fields[key].type = type
+              fields[key].items = this.enums[type]
+            }
+          })
+        }
+        else {
+          console.error(`schema[name] ${name} not defined`)
+        }
+      })
       return this.table('meta.reference')
-        .select()
     })
     .then((references) => {
       references.forEach((ref) => {
