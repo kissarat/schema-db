@@ -84,7 +84,7 @@ module.exports = function loadSchema() {
                 else if ('boolean' === type) {
                   field.type = type
                 }
-                field.sql_type = type
+                field.sqlType = type
               }
               else {
                 console.error(`Field ${name}.${key} not found`)

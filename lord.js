@@ -1,4 +1,4 @@
-const {isObject} = require('lodash')
+const {isObject, isEmpty} = require('lodash')
 const {parse} = require('querystring')
 const salo = require('salo')
 
@@ -39,6 +39,20 @@ function lord(req, res, next) {
       switch (req.method) {
         case 'GET':
           promise = entity.read(params)
+          break
+        case 'POST':
+          const emptyCondition = isEmpty(params)
+          if (emptyCondition || isEmpty(req.body)) {
+            const error = {
+              message: emptyCondition
+                ? 'Condition required'
+                : 'Request body is empty'
+            }
+            return res
+              .status(400)
+              .json({statusCode: 404, error})
+          }
+          promise = entity.update(params, req.body)
           break
         case 'DELETE':
           promise = entity.delete(params)
