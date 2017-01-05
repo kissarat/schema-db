@@ -19,6 +19,6 @@ CREATE OR REPLACE VIEW meta.attribute AS
   FROM pg_class c
     JOIN pg_attribute a ON a.attrelid = c.oid
     JOIN pg_namespace n ON c.relnamespace = n.oid
-  WHERE nspname = 'public' AND (relkind = 'r' OR relkind = 'v')
+  WHERE nspname = 'public' AND (relkind = 'r' OR relkind = 'v') AND a.attstattarget <> 0
   GROUP BY c.relname
   ORDER BY relname;
